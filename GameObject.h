@@ -1,4 +1,3 @@
-
 #ifndef GAMEOBJECT_H
 #define GAMEOBJECT_H
 
@@ -9,26 +8,14 @@ protected:
     Point position;
 
 public:
-    explicit GameObject(Point startPosition = Point())
-        : position(startPosition) {
-    }
+    GameObject(Point startPosition = Point());
+    virtual ~GameObject();
 
-    virtual ~GameObject() = default;
+    virtual void update();
 
-    Point getPosition() const {
-        return position;
-    }
-
-    void setPosition(Point newPosition) {
-        position = newPosition;
-    }
-
-    virtual char getSymbol() const {
-        return '?';
-    }
-
-    virtual void update() {
-    }
+    Point getPosition() const;
+    void setPosition(Point newPosition);
+    virtual char getSymbol() const;
 };
 
 #endif
