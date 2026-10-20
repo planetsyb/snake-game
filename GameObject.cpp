@@ -6,6 +6,10 @@ GameObject::GameObject(Point startPosition) {
     position = startPosition;
 }
 
+void GameObject::update() {
+    // Default: do nothing.
+}
+
 // Virtual destructor
 GameObject::~GameObject() {
     // No dynamic memory is owned by this class.
@@ -25,3 +29,4 @@ void GameObject::setPosition(Point newPosition) {
 char GameObject::getSymbol() const {
     return '?';
 }
+
