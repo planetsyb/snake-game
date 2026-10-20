@@ -1,28 +1,31 @@
 
-#ifndef GAMEOBJECT_H
-#define GAMEOBJECT_H
 
-#include "Point.h"
+#ifndef GAME_H
+#define GAME_H
 
-class GameObject {
-protected:
-    Point position;
+class Game {
+private:
+    int score;
+    int hearts;
+    bool gameOver;
+    bool collisionHandled;
 
 public:
     // Constructor
-    GameObject(Point startPosition = Point());
+    Game();
 
-    // Virtual destructor
-    virtual ~GameObject();
+    // Getters
+    int getScore() const;
+    int getHearts() const;
+    bool isGameOver() const;
 
-    // Get the object's position
-    Point getPosition() const;
-
-    // Change the object's position
-    void setPosition(Point newPosition);
-
-    // Get the character used to display the object
-    virtual char getSymbol() const;
+    // Game logic
+    void eatFood();
+    void eatPoison();
+    void handleCollision();
+    void recover();
+    void validate() const;
+    void displayStatus() const;
 };
 
 #endif
