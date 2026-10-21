@@ -1,21 +1,29 @@
 
 #include <iostream>
 #include <cctype>
-#include <cstdlib>
+#include <conio.h>
+#include <windows.h>
 
 #include "Point.h"
 #include "Board.h"
 #include "Snake.h"
 #include "Food.h"
+#include "Game.h"
+
+//for file handling
+#include <fstream>
+#include <iostream>
 
 using namespace std;
 
-// Display the game board
-void displayBoard(const Board& board,
-                  const Snake& snake,
-                  const NormalFood& normalFood,
-                  const PoisonFood& poisonFood) {
-    cout << "\n";
+// Display the board
+void displayBoard(
+    const Board& board,
+    const Snake& snake,
+    const NormalFood& normalFood,
+    const PoisonFood& poisonFood
+) {
+    cout << "SNAKE GAME\n";
 
     for (int y = 0; y < board.getRows(); y++) {
         for (int x = 0; x < board.getCols(); x++) {
@@ -37,48 +45,79 @@ void displayBoard(const Board& board,
                 cout << '.';
             }
         }
+
         cout << '\n';
     }
 }
 
 // Display score and hearts
-void displayStatus(int score, int hearts) {
-    cout << "\nScore: " << score;
+void displayStatus(const Game& game) {
+    cout << "\nScore: " << game.getScore();
     cout << "\nHearts: ";
 
-    for (int i = 0; i < hearts; i++) {
+    for (int i = 0; i < game.getHearts(); i++) {
         cout << "<3 ";
     }
 
-    cout << "\n";
+    cout << "\nControls: W A S D | Q = Quit\n";
 }
 
-// Read the player's input
+// Read input without waiting for Enter
 bool handleInput(char input, Snake& snake) {
     switch (tolower(static_cast<unsigned char>(input))) {
         case 'w':
             snake.setDirection(Direction::Up);
-            return true;
+            break;
 
         case 's':
             snake.setDirection(Direction::Down);
-            return true;
+            break;
 
         case 'a':
             snake.setDirection(Direction::Left);
-            return true;
+            break;
 
         case 'd':
             snake.setDirection(Direction::Right);
-            return true;
+            break;
 
         case 'q':
             return false;
-
-        default:
-            cout << "Invalid input! Use W, A, S, D or Q.\n";
-            return true;
     }
+
+    return true;
+}
+
+
+//for file handling - we will be storing high scores
+int loadHighScore()
+{
+    std::ifstream file("highscore.txt");
+    int highScore = 0;
+
+    if (file >> highScore)
+        return highScore;
+
+    return 0;
+}
+
+void saveHighScore(int score)
+{
+    std::ofstream file("highscore.txt");
+
+    if (!file)
+    {
+        std::cerr << "Could not save high score.\n";
+        return;
+    }
+
+    file << score;
+}
+
+//change made here
+void openHighScoreFile()
+{
+    system("start notepad highscore.txt");
 }
 
 int main() {
@@ -89,102 +128,118 @@ int main() {
     NormalFood normalFood(Point(15, 10));
     PoisonFood poisonFood(Point(20, 10));
 
-    int score = 0;
-    int hearts = 3;
-    bool gameOver = false;
+//change made here
+  Game game;
+  bool running = true;
 
-    cout << "====================================\n";
-    cout << "           SNAKE GAME\n";
-    cout << "====================================\n";
-    cout << "Controls:\n";
-    cout << "W - Up | A - Left | S - Down | D - Right\n";
-    cout << "Q - Quit\n";
-    cout << "\nO = Snake Head | o = Body\n";
-    cout << "* = Normal Food (+1 point)\n";
-    cout << "X = Poison (-1 heart)\n";
-    cout << "\nPress a key and then Enter to move.\n";
+// Load the previously saved high score
+int highScore = loadHighScore();
 
-    while (!gameOver) {
+cout << "High score: " << highScore << '\n';
+//till here^
+
+    cout << "Starting Snake Game...\n";
+    cout << "The snake moves automatically.\n";
+    cout << "Press any key to begin.\n";
+    _getch();
+
+    while (running && !game.isGameOver()) {
+        // Refresh the display
+        system("cls");
+
         displayBoard(board, snake, normalFood, poisonFood);
-        displayStatus(score, hearts);
+        displayStatus(game);
 
-        cout << "\nEnter your move (W/A/S/D/Q): ";
+        // Read a key only if one is available.
+        // The game does not wait for keyboard input.
+        if (_kbhit()) {
+            char input = _getch();
+            running = handleInput(input, snake);
+        }
 
-        char input;
-        if (!(cin >> input)) {
-            cout << "\nInput ended. Exiting game.\n";
+        if (!running) {
             break;
         }
 
-        // Quit the game
-        if (tolower(static_cast<unsigned char>(input)) == 'q') {
-            cout << "\nThanks for playing!\n";
-            break;
-        }
-
-        // Keep a copy so an invalid move can be undone
+        // Save the previous snake state for collision recovery.
         Snake previousSnake = snake;
 
-        if (!handleInput(input, snake)) {
-            break;
-        }
-
-        // Move the snake one step
+        // Move automatically every tick.
         snake.move();
 
         Point head = snake.getHead();
 
         // Check wall collision
         if (!board.isInside(head)) {
-            snake = previousSnake;
-            hearts--;
+            game.handleCollision();
 
-            cout << "\nWall collision! You lost one heart.\n";
+            if (!game.isGameOver()) {
+                snake = Snake(
+                    Point(10, 10), 3, Direction::Right
+                );
+                game.recover();
+            }
         }
-        // Check collision with the snake's own body
+        // Check self-collision
         else if (snake.hitsItself()) {
-            snake = previousSnake;
-            hearts--;
+            game.handleCollision();
 
-            cout << "\nSelf-collision! You lost one heart.\n";
+            if (!game.isGameOver()) {
+                snake = Snake(
+                    Point(10, 10), 3, Direction::Right
+                );
+                game.recover();
+            }
         }
         else {
-            // Check normal food
+            // Normal food
             if (head == normalFood.getPosition()) {
-                normalFood.applyEffect(snake, score, hearts);
-
-                cout << "\nYou ate normal food! +1 point.\n";
-
+                normalFood.applyEffect(snake, game);
                 normalFood.respawn(board, snake);
             }
 
-            // Check poison food
+            // Poison food
             else if (head == poisonFood.getPosition()) {
-                poisonFood.applyEffect(snake, score, hearts);
+                poisonFood.applyEffect(snake, game);
 
-                cout << "\nYou ate poison! -1 heart.\n";
-
-                poisonFood.respawn(board, snake);
+                if (!game.isGameOver()) {
+                    poisonFood.respawn(board, snake);
+                }
             }
         }
 
-        // End the game when no hearts remain
-        if (hearts <= 0) {
-            hearts = 0;
-            gameOver = true;
-        }
+        // Control the snake's movement speed.
+        Sleep(150);
     }
 
-    cout << "\n====================================\n";
+    system("cls");
 
-    if (hearts == 0) {
-        cout << "             GAME OVER!\n";
+    cout << "========== GAME OVER ==========\n";
+    cout << "Final score: " << game.getScore() << '\n';
+    cout << "Hearts remaining: " << game.getHearts() << '\n';
+
+// Save the new high score if the player beats the record
+if (game.getScore() > highScore)
+{
+    saveHighScore(game.getScore());
+    cout << "New high score!\n";
+}
+
+    if (!game.isGameOver()) {
+        cout << "You quit the game.\n";
     }
 
-    cout << "Final Score: " << score << '\n';
-    cout << "Hearts Remaining: " << hearts << '\n';
-    cout << "Thanks for playing Snake!\n";
-    cout << "====================================\n";
+//change occured here
+    // Save the new high score if the player beats the record
+if (game.getScore() > highScore)
+{
+    saveHighScore(game.getScore());
+    cout << "New high score!\n";
+}
 
+    cout << "Thanks for playing!\n";
+
+    // Automatically open the high scores file
+    openHighScoreFile(); //for calling function to open file that stores files
     return 0;
 }

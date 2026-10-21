@@ -1,6 +1,6 @@
 
 
-#include "game.h"
+#include "Game.h"
 
 #include <iostream>
 #include <stdexcept>

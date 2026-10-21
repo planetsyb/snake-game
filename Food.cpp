@@ -15,15 +15,13 @@ NormalFood::NormalFood(Point startPosition)
     : Food(startPosition) {
 }
 
+//change occured here
 void NormalFood::applyEffect(
     Snake& snake,
-    int& score,
-    int& hearts
+    Game& game
 ) const {
     snake.grow(1);
-    score++;
-
-    (void)hearts;
+    game.eatFood();
 }
 
 char NormalFood::getSymbol() const {
@@ -35,18 +33,13 @@ PoisonFood::PoisonFood(Point startPosition)
     : Food(startPosition) {
 }
 
+//change occured here
 void PoisonFood::applyEffect(
     Snake& snake,
-    int& score,
-    int& hearts
+    Game& game
 ) const {
     snake.shrink(1);
-
-    if (hearts > 0) {
-        hearts--;
-    }
-
-    (void)score;
+    game.eatPoison();
 }
 
 char PoisonFood::getSymbol() const {
